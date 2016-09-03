@@ -1,0 +1,8 @@
+/* login.html stylesheet */
+@import url(http://fonts.googleapis.com/css?family=Audiowide);
+
+/* login.html stylesheet */
+.loginPanel {
+	display: flex;
+  align-items: center;
+}

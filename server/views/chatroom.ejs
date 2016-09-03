@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <meta name="author" content="">
+	<link rel="icon" type="image/png" href="favicon.png">
+	<link rel="stylesheet" href="/css/chatroomStyles.css">
+	<script src="/js/jquery-2.1.4.min.js"></script>
+	<script src="/socket.io/socket.io.js" charset="utf-8"></script>
+	<script src="/babel.min.js" charset="utf-8"></script>
+	<script>
+		'use strict';
+		// ES6 code transpiled down to ES5 by Babel in browser compiler
+		$(()=>{
+			let uId =  "<%= user.id %>";
+			let host = "http://<%= host %>:<%= port %>/chatter";
+			let socket = io(host, {'transports': ['websocket']});
+			let roomId = "<%= roomId %>";
+			let user = "<%= user.fullName %>";
+			let userPic = "<%= user.profilePic %>";
+
+			let chatUsers = $('.chatUsers');
+			let chatInput = $('input[name="userInput"]');
+			let chatMessagesDiv = $('.chatMessages');
+
+			socket.on('connect', (socket)=>{
+				console.log("connected to socket server.");
+			});
+			socket.emit('join', {
+				roomId,
+				user,
+				userPic
+			});
+
+			let userList = (user)=>{
+				return `<div class="userBlock">
+					<div class="userPic"><img src="${user.userPic}" alt="${user.user}"></div>
+					<div class="cuserName">${user.user}</div>
+				</div>`;
+			};
+			socket.on('updateUsersList', (data)=>{
+				let parsedData = JSON.parse(data);
+				console.log("updateUsersList: ", parsedData);
+				let userListData = '';
+				for(let user of parsedData.users){
+					userListData += userList(user);
+				}
+				chatUsers.html('').html(userListData);
+			});
+
+			chatInput.on('keyup', function(e){
+				e.preventDefault();
+				let messageFld = $(this);
+				if(13 === e.which && '' !== messageFld.val()){
+					socket.emit('newMessage', {
+						roomId,
+						user,
+						userPic,
+						message: messageFld.val()
+					});
+					// update the local feed
+					updateFeed(userPic, messageFld.val());
+					messageFld.val('');
+				}
+			});
+
+			let updateFeed = (userPic, msg)=>{
+				let msgBlock = `<div class="chatBlock">
+												<div class="userPic"><img src="${userPic}"></div>
+												<div class="chatMsg">${msg}</div>
+												</div>`;
+				$(msgBlock).hide().prependTo(chatMessagesDiv).slideDown(200);
+			};
+			socket.on('inMessage', (data)=>{
+				let parsedData = JSON.parse(data);
+				updateFeed(parsedData.userPic, parsedData.message);
+
+			});
+
+
+		});
+	</script>
+</head>
+<body>
+	<div class="container">
+		<div class="titlePanel">
+			<h1>ChatCAT | <%= topic %></h1>
+		</div>
+		<div class="controls">
+			<div class="userPicHolder"><img src="<%= user.profilePic %>" alt="<%= user.fullName %>"></div>
+			<p class="userName"><%= user.fullName %></p>
+			<a href="/rooms" id="roomsBtn">Rooms</a>
+			<a href="/logout" id="logOutBtn">Logout</a>
+		</div>
+		<div class="chatListDiv">
+			<div class="chatMessagesPanel">
+				<div class="chatMessages">
+				<!-- Loop this for chat messages
+				<div class="chatBlock">
+					<div class="userPic"><img src="<%= user.profilePic %>"></div>
+					<div class="chatMsg">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Deleniti perferendis eius aut nesciunt necessitatibus ad nulla, qui sequi, id nam. Possimus odit aut nisi veritatis amet distinctio id officiis ipsam!</div>
+				</div>
+				 loop end -->
+				</div>
+				<div class="typePanel">
+					<input type="text" name="userInput" placeholder="Type here and press enter">
+					<a href="#" id="uploadFile" class="fileUploadBtn">Photo</a>
+				</div>
+			</div>
+			<div class="chatUsers">
+			<!-- Loop this for chat users
+				<div class="userBlock">
+					<div class="userPic"><img src="<%= user.profilePic %>" alt="<%= user.fullName %>"></div>
+					<div class="cuserName"><%= user.fullName %></div>
+				</div>
+			loop end -->
+			</div>
+		</div>
+	</div>
+</body>
+</html>

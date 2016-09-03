@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <meta name="author" content="">
+	<link rel="icon" type="image/png" href="favicon.png">
+	<link rel="stylesheet" href="/css/roomsStyles.css">
+	<script src="/js/jquery-2.1.4.min.js"></script>
+	<script src="/socket.io/socket.io.js" charset="utf-8"></script>
+	<script src="/babel.min.js" charset="utf-8"></script>
+	<script>
+		'use strict';
+		// ES6 code transpiled down to ES5 by Babel in browser compiler
+		$(()=>{
+			let uId =  "<%= user.id %>";
+			let host = "http://<%= host %>:<%= port %>/roomlist";
+			let socket = io(host, {'transports': ['websocket']});
+			socket.on('connect', (socket)=>{
+				console.log("connected to socket server.");
+			});
+			let renderChatRooms = (chatrooms)=>{
+				let roomsListDiv = $('#roomsListUL');
+				let listStr = '';
+				for(let cat of chatrooms){
+					listStr += `<a href="/chatroom/${cat.roomId}"><li>${cat.room}</li></a>`;
+				};
+				roomsListDiv.html('').append(listStr);
+			};
+			// Pull the list of current chat rooms from the server on connection.
+			socket.emit('getChatrooms');
+			socket.on('chatRoomsList', (chatrooms)=>{
+				renderChatRooms(JSON.parse(chatrooms));
+			});
+
+			// New chatroom form
+			let newRoomInput = $("input[name='roomName']");
+			$('#createBtn').on('click', ()=>{
+				if('' !== newRoomInput.val()){
+					socket.emit('createNewRoom', {
+						'newRoom': newRoomInput.val(),
+						'userId': uId
+					});
+					newRoomInput.val('');
+					socket.on('err', (err)=>{
+						window.alert(err.msg);
+					});
+
+				}
+			});
+
+
+
+		});
+	</script>
+	<title>ChatCat - Rooms</title>
+</head>
+<body>
+	<div class="container">
+		<div class="titlePanel">
+			<h1>ChatCAT | Select or Create a Chatroom</h1>
+		</div>
+		<div class="controls">
+			<div class="userPicHolder"><img src="<%= user.profilePic %>" alt="<%= user.fullName %>"></div>
+			<p class="userName"><%= user.fullName %></p>
+			<a href="/logout" id="logOutBtn">Logout</a>
+		</div>
+		<div class="controls">
+			<input type="text" name="roomName" placeholder="Create a new Chatroom">
+			<a href="#" id="createBtn">Create</a>
+		</div>
+		<div class="roomsListDiv">
+			<ul class="roomsList" id="roomsListUL">
+			<!-- Loop list items here
+				<a href="/chatroom/1"><li>World Cuisine</li></a>
+				<a href="/chatroom/2"><li>Coffee and Conversations</li></a>
+			 Loop ends -->
+			</ul>
+		</div>
+	</div>
+</body>
+</html>
